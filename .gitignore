@@ -5,3 +5,8 @@ out/
 
 # VS Code
 .vscode/
+
+# Eclipse / jdtls (Java Language Server)
+.classpath
+.project
+.settings/

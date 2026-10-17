@@ -10,6 +10,9 @@ repositories {
 }
 
 dependencies {
+    // Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna
+    implementation("net.java.dev.jna:jna:5.18.1")
+
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -18,6 +21,20 @@ dependencies {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.Client'
+        // JNA loads native code; this silences Java 25's restricted-native-access
+        // warning (and keeps working when that warning becomes a hard block).
+        attributes 'Enable-Native-Access': 'ALL-UNNAMED'
+    }
+    // include project runtime deps in the jar so `java -jar` works standalone
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 
