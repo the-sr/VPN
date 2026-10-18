@@ -1,36 +1,40 @@
 package com;
 
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import com.tun.PacketPrinter;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 
 /**
- * Listens for the client on port 5000 and holds each connection open.
+ * Listens on UDP port 5000 and prints every packet the client forwards.
  *
- * Nothing is done with the connection yet - the server only proves the socket link
- * works. The next phase switches transport to gRPC, at which point these connections
- * carry encrypted packets from the client down to the network.
+ * The server is stateless: UDP tells it nothing about who is sending, so it just
+ * decodes whatever datagram turns up. The flip side is that it can only reply after a
+ * client has spoken first - the peer address has to be taken from a received packet
+ * instead of learned from a connection. That matters as soon as the return path is built.
+ *
+ * Printing here is temporary output; encrypting the packets and forwarding them out to
+ * the internet are the following phases.
  */
 public class Server {
 
-  public static void main(String[] args) {
+  /** Sized for a full IPv4 datagram, so no packet can be truncated by the receive call. */
+  private static final int BUFFER_SIZE = 65535;
 
-    // Accepted sockets are stored here: a Socket that nothing references can be
-    // garbage collected, which closes the connection underneath us. This list keeps
-    // the references alive for as long as the server runs.
-    List<Socket> clients = new ArrayList<>();
+  public static void main(String[] args) throws Exception {
 
-    try (ServerSocket serverSocket = new ServerSocket(5000)) {
-      System.out.println("Listening on port 5000...");
+    // Binding port 5000 makes this a fixed mailbox for the life of the process, and
+    // receive() then blocks until a client sends something - no handshake is exchanged
+    // and nothing about the client is retained between datagrams.
+    try (DatagramSocket socket = new DatagramSocket(5000)) {
+      System.out.println("Listening for packets on UDP port 5000...");
 
+      byte[] buf = new byte[BUFFER_SIZE];
       while (true) {
-        Socket client = serverSocket.accept();
-        clients.add(client);
-        System.out.println("Client connected: " + client.getInetAddress());
+        DatagramPacket datagram = new DatagramPacket(buf, buf.length);
+        socket.receive(datagram);
+        PacketPrinter.print(datagram.getData(), datagram.getLength());
       }
-    } catch (Exception e) {
-      System.out.println("Server error: " + e.getMessage());
     }
   }
 }
