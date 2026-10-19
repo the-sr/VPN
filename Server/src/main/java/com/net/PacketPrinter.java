@@ -1,14 +1,14 @@
-package com.tun;
+package com.net;
 
 import java.util.HexFormat;
 
 /**
- * Formats a captured packet for the console: a hex dump of the first bytes plus a
- * decode of the IPv4 header and TCP/UDP ports.
+ * Decodes a packet for the console: a hex dump of its leading bytes plus the IPv4 header
+ * and the TCP/UDP ports.
  *
  * The byte offsets come straight from the RFC 791 header layout - this is slicing a
- * buffer, nothing more. Output is discarded once encryption takes over in the next
- * phase, so no effort is spent making it pretty.
+ * buffer, nothing more. The output is a debugging view while the tunnel is being built,
+ * so no effort goes into presentation.
  */
 public final class PacketPrinter {
 
@@ -17,6 +17,10 @@ public final class PacketPrinter {
   }
 
   public static void print(byte[] buf, int n) {
+    // A zero-length result is legal but has no bytes to decode; returning keeps the
+    // previous packet's leftovers from being printed as though they were one.
+    if (n <= 0) return;
+
     System.out.println("[" + n + " bytes] "
         + HexFormat.ofDelimiter(" ").formatHex(buf, 0, Math.min(n, 64)));
 
